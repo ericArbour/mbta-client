@@ -1,5 +1,15 @@
 import React, { useState } from "react";
 import ReactMapGL from "react-map-gl";
+import { useSubscription } from "@apollo/react-hooks";
+import gql from "graphql-tag";
+
+const GET_VEHICLE_UPDATES = gql`
+  subscription onVehicleUpdate {
+    vehicles(route: "Red") {
+      id
+    }
+  }
+`;
 
 const bostonCoordinates = { latitude: 42.361145, longitude: -71.057083 };
 const minLatitude = bostonCoordinates.latitude - 0.2; // Southern bound
@@ -15,6 +25,8 @@ export default function Map() {
     zoom: 12,
     minZoom: 11,
   }));
+  const { data, loading, error } = useSubscription(GET_VEHICLE_UPDATES);
+  console.log(data, loading, error);
 
   return (
     <ReactMapGL
