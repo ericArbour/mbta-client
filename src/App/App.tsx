@@ -1,4 +1,7 @@
 import React from "react";
+
+import Map from "../Map/Map";
+
 import logo from "./logo.svg";
 import styles from "./App.module.css";
 
@@ -8,7 +11,9 @@ function App() {
       <header className={styles["app-header"]}>
         <h1>T Tracker</h1>
       </header>
-      <main className={styles["app-main"]}></main>
+      <main className={styles["app-main"]}>
+        <Map />
+      </main>
       <footer className={styles["app-footer"]}>
         <img src={logo} className={styles["react-logo"]} alt="logo" />
         <p>Powered by React.</p>
