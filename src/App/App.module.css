@@ -1,6 +1,6 @@
 .app {
   color: #fff;
-  background-color: #282c34;
+  background-color: var(--mapbox-water);
   min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr auto;

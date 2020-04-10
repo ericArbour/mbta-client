@@ -19,6 +19,7 @@ export default function Map() {
   return (
     <ReactMapGL
       {...viewport}
+      mapStyle="mapbox://styles/mapbox/dark-v10"
       onViewportChange={(viewport) => {
         const { latitude, longitude } = viewport;
         const newLatitude =
