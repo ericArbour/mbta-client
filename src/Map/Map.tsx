@@ -4,9 +4,8 @@ import { useSubscription, useQuery } from "@apollo/react-hooks";
 import gql from "graphql-tag";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSubway } from "@fortawesome/free-solid-svg-icons";
-import polyline from "@mapbox/polyline";
 
-import { Vehicle } from "../types";
+import { Vehicle, Route, isNotUndefined } from "../types";
 
 const GET_VEHICLE_UPDATES = gql`
   subscription onVehicleUpdate {
@@ -32,6 +31,25 @@ const GET_VEHICLES = gql`
   }
 `;
 
+const GET_ROUTES = gql`
+  query GetRoutes {
+    routes(filter: { typeFilter: [SUBWAY, LIGHT_RAIL] }) {
+      id
+      type
+      color
+      textColor
+      shortName
+      longName
+      shapes {
+        id
+        priority
+        polyline
+        name
+      }
+    }
+  }
+`;
+
 const bostonCoordinates = { latitude: 42.361145, longitude: -71.057083 };
 const minLatitude = bostonCoordinates.latitude - 0.2; // Southern bound
 const maxLatitude = bostonCoordinates.latitude + 0.2; // Northern bound
@@ -46,29 +64,32 @@ export default function Map() {
     zoom: 11,
     minZoom: 10,
   }));
-  const { data: queryData } = useQuery<{
-    vehicles: Vehicle[];
-  }>(GET_VEHICLES);
-  const { data: subData } = useSubscription<{
-    vehicles: Vehicle[];
-  }>(GET_VEHICLE_UPDATES);
-  const queryVehicles = queryData?.vehicles || [];
-  const subVehicles = subData?.vehicles || [];
-  const vehicles = subVehicles.length ? subVehicles : queryVehicles;
+  const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
+  const [clickedRouteId, setClickedRouteId] = useState<string | null>(null);
 
-  const test = polyline
-    .decode(
-      "}nwaG~|eqLGyNIqAAc@S_CAEWu@g@}@u@k@u@Wu@OMGIMISQkAOcAGw@SoDFkCf@sUXcJJuERwHPkENqCJmB^mDn@}D??D[TeANy@\\iAt@qB`AwBl@cAl@m@b@Yn@QrBEtCKxQ_ApMT??R?`m@hD`Np@jAF|@C`B_@hBi@n@s@d@gA`@}@Z_@RMZIl@@fBFlB\\tAP??~@L^?HCLKJWJ_@vC{NDGLQvG}HdCiD`@e@Xc@b@oAjEcPrBeGfAsCvMqVl@sA??jByD`DoGd@cAj@cBJkAHqBNiGXeHVmJr@kR~@q^HsB@U??NgDr@gJTcH`@aMFyCF}AL}DN}GL}CXkILaD@QFmA@[??DaAFiBDu@BkA@UB]Fc@Jo@BGJ_@Lc@\\}@vJ_OrCyDj@iAb@_AvBuF`@gA`@aAv@qBVo@Xu@??bDgI??Tm@~IsQj@cAr@wBp@kBj@kB??HWtDcN`@g@POl@UhASh@Eb@?t@FXHl@Px@b@he@h[pCC??bnAm@h@T??xF|BpBp@^PLBXAz@Yl@]l@e@|B}CT[p@iA|A}BZi@zDuF\\c@n@s@VObAw@^Sl@Yj@U\\O|@WdAUxAQRCt@E??xAGrBQZAhAGlAEv@Et@E~@AdAAbCGpCA|BEjCMr@?nBDvANlARdBb@nDbA~@XnBp@\\JRH??|Al@`AZbA^jA^lA\\h@P|@TxAZ|@J~@LN?fBXxHhApDt@b@JXFtAVhALx@FbADtAC`B?z@BHBH@|@f@RN^^T\\h@hANb@HZH`@H^LpADlA@dD@jD@x@@b@Bp@HdAFd@Ll@F^??n@rDBRl@vD^pATp@Rb@b@z@\\l@`@j@p@t@j@h@n@h@n@`@hAh@n@\\t@PzANpAApBGtE}@xBa@??xB_@nOmB`OgBb@IrC[p@MbEmARCV@d@LH?tDyAXM",
-    )
-    .map(([a, b]) => [b, a]);
-  console.log(test);
+  const { data: routeData } = useQuery<{
+    routes: Route[];
+  }>(GET_ROUTES);
+  // const { data: queryData } = useQuery<{
+  //   vehicles: Vehicle[];
+  // }>(GET_VEHICLES);
+  // const { data: subData } = useSubscription<{
+  //   vehicles: Vehicle[];
+  // }>(GET_VEHICLE_UPDATES);
+  // const queryVehicles = queryData?.vehicles || [];
+  // const subVehicles = subData?.vehicles || [];
+  // const vehicles = subVehicles.length ? subVehicles : queryVehicles;
+  const routes = routeData?.routes || [];
+  const shapeIds = routes
+    .flatMap((route) => route.shapes?.map((shape) => shape.id))
+    .filter(isNotUndefined);
 
   return (
     <ReactMapGL
       {...viewport}
       mapStyle="mapbox://styles/mapbox/dark-v10"
+      interactiveLayerIds={shapeIds}
       onViewportChange={(viewport) => {
-        console.log("hit");
         const { latitude, longitude } = viewport;
         const newLatitude =
           latitude > maxLatitude
@@ -89,47 +110,96 @@ export default function Map() {
           longitude: newlongitude,
         });
       }}
+      onHover={({ features }) => {
+        const hoveredRoute =
+          features &&
+          features.find(
+            (feature) =>
+              typeof feature.source === "string" &&
+              feature.source.startsWith("shape-"),
+          );
+        if (hoveredRoute) {
+          setHoveredRouteId(hoveredRoute.properties.routeId);
+        } else {
+          setHoveredRouteId(null);
+        }
+      }}
+      onClick={({ features }) => {
+        const clickedRoute =
+          features &&
+          features.find(
+            (feature) =>
+              typeof feature.source === "string" &&
+              feature.source.startsWith("shape-"),
+          );
+        if (
+          !clickedRoute ||
+          clickedRoute.properties.routeId === clickedRouteId
+        ) {
+          setClickedRouteId(null);
+        } else {
+          setClickedRouteId(clickedRoute.properties.routeId);
+        }
+      }}
     >
-      <Source
-        type="geojson"
-        data={{
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: test,
-          },
-        }}
-      >
-        {vehicles.map((vehicle) =>
-          vehicle.longitude && vehicle.latitude ? (
-            <Marker
-              key={`marker-${vehicle.id}`}
-              longitude={vehicle.longitude}
-              latitude={vehicle.latitude}
+      {/* {vehicles.map((vehicle) =>
+        vehicle.longitude && vehicle.latitude ? (
+          <Marker
+            key={`marker-${vehicle.id}`}
+            longitude={vehicle.longitude}
+            latitude={vehicle.latitude}
+          >
+            <FontAwesomeIcon
+              icon={faSubway}
+              style={{
+                color: "red",
+                transform: `rotate(${180 + (vehicle.bearing || 0)}deg)`,
+              }}
+            />
+          </Marker>
+        ) : null,
+      )} */}
+      {routes.map((route) => {
+        const { shapes = [] } = route;
+
+        return shapes.map((shape) =>
+          shape.polyline ? (
+            <Source
+              key={shape.id}
+              id={`shape-${shape.id}`}
+              type="geojson"
+              data={{
+                type: "Feature",
+                properties: {
+                  routeId: route.id,
+                },
+                geometry: {
+                  type: "LineString",
+                  coordinates: shape.polyline,
+                },
+              }}
             >
-              <FontAwesomeIcon
-                icon={faSubway}
-                style={{
-                  color: "red",
-                  transform: `rotate(${180 + (vehicle.bearing || 0)}deg)`,
+              <Layer
+                id={shape.id}
+                type="line"
+                layout={{
+                  "line-join": "round",
+                  "line-cap": "round",
+                }}
+                paint={{
+                  "line-color": `#${route.color}` || "gray",
+                  "line-width": 10,
+                  "line-opacity": [hoveredRouteId, clickedRouteId].includes(
+                    route.id,
+                  )
+                    ? 1
+                    : 0.1,
                 }}
               />
-            </Marker>
+            </Source>
           ) : null,
-        )}
-        <Layer
-          type="line"
-          layout={{
-            "line-join": "round",
-            "line-cap": "round",
-          }}
-          paint={{
-            "line-color": "grey",
-            "line-width": 4,
-          }}
-        />
-      </Source>
+        );
+      })}
     </ReactMapGL>
   );
 }
