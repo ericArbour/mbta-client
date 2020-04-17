@@ -8,20 +8,13 @@
     "footer";
 }
 
-.app-header {
+header {
   grid-area: header;
   display: flex;
   justify-content: center;
 }
 
-.app-main {
-  grid-area: main;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.app-footer {
+footer {
   grid-area: footer;
   display: flex;
   flex-direction: column;

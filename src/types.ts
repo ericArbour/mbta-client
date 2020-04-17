@@ -32,8 +32,8 @@ export type Route = {
   type?: string | null;
   color?: string | null;
   textColor?: string | null;
-  shortName?: string | null;
   longName?: string | null;
+  fareClass?: string | null;
   shapes?: Shape[];
 };
 
