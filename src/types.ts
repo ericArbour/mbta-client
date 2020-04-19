@@ -44,3 +44,21 @@ export function isUndefined<T>(x: T | undefined): x is undefined {
 export function isNotUndefined<T>(x: T | undefined): x is T {
   return !isUndefined(x);
 }
+
+export function isNull<T>(x: T | null): x is null {
+  return x === null;
+}
+
+export function isNotNull<T>(x: T | null): x is T {
+  return !isNull(x);
+}
+
+type Nullish = undefined | null;
+
+export function isNullish<T>(x: T | Nullish): x is Nullish {
+  return isUndefined(x) || isNull(x);
+}
+
+export function isNotNullish<T>(x: T | Nullish): x is T {
+  return !isNullish(x);
+}

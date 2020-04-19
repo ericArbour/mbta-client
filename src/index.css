@@ -1,5 +1,8 @@
 :root {
   --mapbox-water: #191a1a;
+  --mapbox-land: #343333;
+  --road-line: #454545;
+  --light-gray: #c4c4c4;
 }
 
 body {

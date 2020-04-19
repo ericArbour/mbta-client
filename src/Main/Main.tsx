@@ -10,7 +10,7 @@ import "./Main.module.css";
 
 const GET_ROUTES = gql`
   query GetRoutes {
-    routes(filter: { typeFilter: [SUBWAY, LIGHT_RAIL] }) {
+    routes(filter: { typeFilter: [SUBWAY, LIGHT_RAIL, FERRY] }) {
       id
       type
       color

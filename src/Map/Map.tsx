@@ -178,7 +178,7 @@ export default function Map({
                     "line-cap": "round",
                   }}
                   paint={{
-                    "line-color": `#${route.color}` || "gray",
+                    "line-color": `#${route.color}`,
                     "line-width": 10,
                     "line-opacity": [hoveredRouteId, clickedRouteId].includes(
                       route.id,
