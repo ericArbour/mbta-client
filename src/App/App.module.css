@@ -1,13 +1,15 @@
 .app {
-  min-height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, auto) auto;
+  grid-template-rows: max-content minmax(0, auto) max-content;
   grid-template-areas:
     "header"
     "main"
     "footer";
-  margin: 1rem 3rem;
+  padding: 3rem;
+  max-width: 100rem;
   height: 100vh;
+  max-height: 70rem;
+  margin: 0 auto;
 }
 
 header {
@@ -37,6 +39,7 @@ footer {
   align-items: center;
   justify-content: center;
   color: white;
+  padding: 1rem;
 }
 
 .react-logo {

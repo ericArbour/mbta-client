@@ -7,17 +7,17 @@ import styles from "./Menu.module.css";
 type MenuProps = {
   routes: Route[];
   hoveredRouteId: string | null;
-  setHoveredRouteId: (hoveredRouteId: string | null) => void;
-  clickedRouteId: string | null;
-  setClickedRouteId: (clickedRouteId: string | null) => void;
+  setHoveredRouteId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedRouteId: string | null;
+  setSelectedRouteId: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export default function Menu({
   routes,
   hoveredRouteId,
   setHoveredRouteId,
-  clickedRouteId,
-  setClickedRouteId,
+  selectedRouteId,
+  setSelectedRouteId,
 }: MenuProps) {
   return (
     <menu>
@@ -30,7 +30,11 @@ export default function Menu({
             key={route.id}
             onMouseEnter={() => setHoveredRouteId(route.id)}
             onMouseLeave={() => setHoveredRouteId(null)}
-            onClick={() => setClickedRouteId(route.id)}
+            onClick={() =>
+              setSelectedRouteId((selectedRouteId) =>
+                selectedRouteId === route.id ? null : route.id,
+              )
+            }
           >
             <div className={styles["card-header"]}>
               <h3
@@ -38,7 +42,7 @@ export default function Menu({
                   color: `#${route.textColor}`,
                   backgroundColor: isNullish(route.color)
                     ? ""
-                    : [hoveredRouteId, clickedRouteId].includes(route.id)
+                    : [hoveredRouteId, selectedRouteId].includes(route.id)
                     ? getRgbaString(route.color, 1)
                     : getRgbaString(route.color, 0.5),
                 }}

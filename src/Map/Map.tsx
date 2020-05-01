@@ -5,30 +5,38 @@ import gql from "graphql-tag";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSubway } from "@fortawesome/free-solid-svg-icons";
 
-import { Vehicle, Route, isNotUndefined } from "../types";
+import { Vehicle, Route, isNotUndefined, isNull } from "../types";
 
-const GET_VEHICLE_UPDATES = gql`
-  subscription onVehicleUpdate {
-    vehicles(route: "Red") {
+const VEHICLE_FIELDS = gql`
+  fragment VehicleFields on Vehicle {
+    id
+    label
+    latitude
+    longitude
+    bearing
+    route {
       id
-      label
-      latitude
-      longitude
-      bearing
+      color
     }
   }
 `;
 
-const GET_VEHICLES = gql`
-  query GetVehicles {
-    vehicles(filter: { routeFilter: ["Red"] }) {
-      id
-      label
-      latitude
-      longitude
-      bearing
+const ON_VEHICLE_UPDATES = gql`
+  subscription OnVehicleUpdate($routeId: String!) {
+    vehicles(route: $routeId) {
+      ...VehicleFields
     }
   }
+  ${VEHICLE_FIELDS}
+`;
+
+const GET_VEHICLES = gql`
+  query GetVehicles($routeId: String!) {
+    vehicles(filter: { routeFilter: [$routeId] }) {
+      ...VehicleFields
+    }
+  }
+  ${VEHICLE_FIELDS}
 `;
 
 const bostonCoordinates = { latitude: 42.361145, longitude: -71.057083 };
@@ -40,17 +48,17 @@ const maxLongitude = bostonCoordinates.longitude + 0.2; // Eastern bound
 type MapProps = {
   routes: Route[];
   hoveredRouteId: string | null;
-  setHoveredRouteId: (hoveredRouteId: string | null) => void;
-  clickedRouteId: string | null;
-  setClickedRouteId: (clickedRouteId: string | null) => void;
+  setHoveredRouteId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedRouteId: string | null;
+  setSelectedRouteId: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export default function Map({
   routes,
   hoveredRouteId,
   setHoveredRouteId,
-  clickedRouteId,
-  setClickedRouteId,
+  selectedRouteId,
+  setSelectedRouteId,
 }: MapProps) {
   const [viewport, setViewport] = useState(() => ({
     ...bostonCoordinates,
@@ -58,19 +66,41 @@ export default function Map({
     minZoom: 10,
   }));
 
-  // const { data: queryData } = useQuery<{
-  //   vehicles: Vehicle[];
-  // }>(GET_VEHICLES);
-  // const { data: subData } = useSubscription<{
-  //   vehicles: Vehicle[];
-  // }>(GET_VEHICLE_UPDATES);
-  // const queryVehicles = queryData?.vehicles || [];
-  // const subVehicles = subData?.vehicles || [];
-  // const vehicles = subVehicles.length ? subVehicles : queryVehicles;
+  const filteredRoutes = selectedRouteId
+    ? routes.filter((route) => route.id === selectedRouteId)
+    : routes;
 
-  const shapeIds = routes
+  const shapeIds = filteredRoutes
     .flatMap((route) => route.shapes?.map((shape) => shape.id))
     .filter(isNotUndefined);
+
+  const { data: queryData } = useQuery<{
+    vehicles: Vehicle[];
+  }>(GET_VEHICLES, {
+    variables: { routeId: selectedRouteId },
+    skip: !selectedRouteId,
+  });
+
+  const { data: subData } = useSubscription<{
+    vehicles: Vehicle[];
+  }>(ON_VEHICLE_UPDATES, {
+    variables: { routeId: selectedRouteId },
+    skip: !selectedRouteId,
+  });
+
+  const queryVehicles = queryData?.vehicles || [];
+  // Filter out previous querys result's vehicles
+  const filteredQueryVehicles = queryVehicles.filter(
+    (vehicle) => vehicle.route?.id === selectedRouteId,
+  );
+  const subVehicles = subData?.vehicles || [];
+  // Filter out previous subscription result's vehicles
+  const filteredSubVehicles = subVehicles.filter(
+    (vehicle) => vehicle.route?.id === selectedRouteId,
+  );
+  const vehicles = filteredSubVehicles.length
+    ? filteredSubVehicles
+    : filteredQueryVehicles;
 
   return (
     <map>
@@ -125,32 +155,32 @@ export default function Map({
             );
           if (
             !clickedRoute ||
-            clickedRoute.properties.routeId === clickedRouteId
+            clickedRoute.properties.routeId === selectedRouteId
           ) {
-            setClickedRouteId(null);
+            setSelectedRouteId(null);
           } else {
-            setClickedRouteId(clickedRoute.properties.routeId);
+            setSelectedRouteId(clickedRoute.properties.routeId);
           }
         }}
       >
-        {/* {vehicles.map((vehicle) =>
-        vehicle.longitude && vehicle.latitude ? (
-          <Marker
-            key={`marker-${vehicle.id}`}
-            longitude={vehicle.longitude}
-            latitude={vehicle.latitude}
-          >
-            <FontAwesomeIcon
-              icon={faSubway}
-              style={{
-                color: "red",
-                transform: `rotate(${180 + (vehicle.bearing || 0)}deg)`,
-              }}
-            />
-          </Marker>
-        ) : null,
-      )} */}
-        {routes.map((route) => {
+        {vehicles.map((vehicle) =>
+          vehicle.longitude && vehicle.latitude ? (
+            <Marker
+              key={`marker-${vehicle.id}`}
+              longitude={vehicle.longitude}
+              latitude={vehicle.latitude}
+            >
+              <FontAwesomeIcon
+                icon={faSubway}
+                style={{
+                  color: vehicle.route?.color || "white",
+                  transform: `rotate(${180 + (vehicle.bearing || 0)}deg)`,
+                }}
+              />
+            </Marker>
+          ) : null,
+        )}
+        {filteredRoutes.map((route) => {
           const { shapes = [] } = route;
 
           return shapes.map((shape) =>
@@ -178,9 +208,11 @@ export default function Map({
                     "line-cap": "round",
                   }}
                   paint={{
-                    "line-color": `#${route.color}`,
+                    "line-color": isNull(selectedRouteId)
+                      ? `#${route.color}`
+                      : "gray",
                     "line-width": 10,
-                    "line-opacity": [hoveredRouteId, clickedRouteId].includes(
+                    "line-opacity": [hoveredRouteId, selectedRouteId].includes(
                       route.id,
                     )
                       ? 1

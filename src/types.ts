@@ -10,6 +10,7 @@ export type Vehicle = {
   currentStopSequence?: number | null;
   currentStatus?: CurrentStopStatus | null;
   bearing?: number | null;
+  route?: Route | null;
 };
 
 enum CurrentStopStatus {

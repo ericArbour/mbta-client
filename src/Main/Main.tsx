@@ -29,7 +29,7 @@ const GET_ROUTES = gql`
 
 export default function Main() {
   const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
-  const [clickedRouteId, setClickedRouteId] = useState<string | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
   const { data: routeData } = useQuery<{
     routes: Route[];
@@ -42,15 +42,15 @@ export default function Main() {
         routes={routes}
         hoveredRouteId={hoveredRouteId}
         setHoveredRouteId={setHoveredRouteId}
-        clickedRouteId={clickedRouteId}
-        setClickedRouteId={setClickedRouteId}
+        selectedRouteId={selectedRouteId}
+        setSelectedRouteId={setSelectedRouteId}
       />
       <Map
         routes={routes}
         hoveredRouteId={hoveredRouteId}
         setHoveredRouteId={setHoveredRouteId}
-        clickedRouteId={clickedRouteId}
-        setClickedRouteId={setClickedRouteId}
+        selectedRouteId={selectedRouteId}
+        setSelectedRouteId={setSelectedRouteId}
       />
     </main>
   );
