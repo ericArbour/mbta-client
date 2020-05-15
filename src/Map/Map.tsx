@@ -3,9 +3,11 @@ import ReactMapGL, { Marker, Source, Layer } from "react-map-gl";
 import { useSubscription, useQuery } from "@apollo/react-hooks";
 import gql from "graphql-tag";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSubway } from "@fortawesome/free-solid-svg-icons";
+import { faTrain, faSubway } from "@fortawesome/free-solid-svg-icons";
 
 import { Vehicle, Route, isNotUndefined, isNull } from "../types";
+
+import styles from "./Map.module.css";
 
 const VEHICLE_FIELDS = gql`
   fragment VehicleFields on Vehicle {
@@ -51,6 +53,7 @@ type MapProps = {
   setHoveredRouteId: React.Dispatch<React.SetStateAction<string | null>>;
   selectedRouteId: string | null;
   setSelectedRouteId: React.Dispatch<React.SetStateAction<string | null>>;
+  setSelectedVehicleId: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export default function Map({
@@ -59,6 +62,7 @@ export default function Map({
   setHoveredRouteId,
   selectedRouteId,
   setSelectedRouteId,
+  setSelectedVehicleId,
 }: MapProps) {
   const [viewport, setViewport] = useState(() => ({
     ...bostonCoordinates,
@@ -66,13 +70,19 @@ export default function Map({
     minZoom: 10,
   }));
 
+  const selectedRoute = routes.find((route) => route.id === selectedRouteId);
   const filteredRoutes = selectedRouteId
-    ? routes.filter((route) => route.id === selectedRouteId)
+    ? routes.filter((route) =>
+        [selectedRouteId, hoveredRouteId].includes(route.id),
+      )
     : routes;
 
   const shapeIds = filteredRoutes
     .flatMap((route) => route.shapes?.map((shape) => shape.id))
     .filter(isNotUndefined);
+  const interactiveLayerIdProp = selectedRouteId
+    ? { interactiveLayerIds: shapeIds }
+    : {};
 
   const { data: queryData } = useQuery<{
     vehicles: Vehicle[];
@@ -103,13 +113,14 @@ export default function Map({
     : filteredQueryVehicles;
 
   return (
-    <map>
+    <section className={styles["map-container"]}>
       <ReactMapGL
         {...viewport}
+        {...interactiveLayerIdProp}
         height="100%"
         width="100%"
         mapStyle="mapbox://styles/mapbox/dark-v10"
-        interactiveLayerIds={shapeIds}
+        interactiveLayerIds={selectedRouteId ? undefined : shapeIds}
         onViewportChange={(viewport) => {
           const { latitude, longitude } = viewport;
           const newLatitude =
@@ -146,21 +157,17 @@ export default function Map({
           }
         }}
         onClick={({ features }) => {
-          const clickedRoute =
+          if (selectedRouteId) return;
+
+          const clickedShapeSource =
             features &&
             features.find(
               (feature) =>
                 typeof feature.source === "string" &&
                 feature.source.startsWith("shape-"),
             );
-          if (
-            !clickedRoute ||
-            clickedRoute.properties.routeId === selectedRouteId
-          ) {
-            setSelectedRouteId(null);
-          } else {
-            setSelectedRouteId(clickedRoute.properties.routeId);
-          }
+          if (clickedShapeSource)
+            setSelectedRouteId(clickedShapeSource.properties.routeId);
         }}
       >
         {vehicles.map((vehicle) =>
@@ -171,17 +178,20 @@ export default function Map({
               latitude={vehicle.latitude}
             >
               <FontAwesomeIcon
-                icon={faSubway}
+                icon={selectedRoute?.type === "LIGHT_RAIL" ? faTrain : faSubway}
                 style={{
                   color: vehicle.route?.color || "white",
                   transform: `rotate(${180 + (vehicle.bearing || 0)}deg)`,
                 }}
+                onClick={() => setSelectedVehicleId(vehicle.id)}
               />
             </Marker>
           ) : null,
         )}
         {filteredRoutes.map((route) => {
           const { shapes = [] } = route;
+          const isSelected = route.id === selectedRouteId;
+          const isHovered = route.id === hoveredRouteId;
 
           return shapes.map((shape) =>
             shape.polyline ? (
@@ -208,15 +218,12 @@ export default function Map({
                     "line-cap": "round",
                   }}
                   paint={{
-                    "line-color": isNull(selectedRouteId)
-                      ? `#${route.color}`
-                      : "gray",
+                    "line-color":
+                      isNull(selectedRouteId) || (isHovered && !isSelected)
+                        ? `#${route.color}`
+                        : "gray",
                     "line-width": 10,
-                    "line-opacity": [hoveredRouteId, selectedRouteId].includes(
-                      route.id,
-                    )
-                      ? 1
-                      : 0.1,
+                    "line-opacity": isSelected || isHovered ? 1 : 0.1,
                   }}
                 />
               </Source>
@@ -224,6 +231,6 @@ export default function Map({
           );
         })}
       </ReactMapGL>
-    </map>
+    </section>
   );
 }

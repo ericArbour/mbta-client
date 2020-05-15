@@ -1,6 +1,8 @@
 import React from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 
-import { Route, isNullish } from "../types";
+import { Route, isNullish, isNotNullish } from "../types";
 
 import styles from "./Menu.module.css";
 
@@ -20,44 +22,69 @@ export default function Menu({
   setSelectedRouteId,
 }: MenuProps) {
   return (
-    <menu>
-      <div className={styles["menu-header"]}>
+    <nav className={styles["route-menu"]}>
+      <div className={styles["route-menu-header"]}>
         <h2>Routes</h2>
       </div>
       <ul>
-        {routes.map((route) => (
-          <li
-            key={route.id}
-            onMouseEnter={() => setHoveredRouteId(route.id)}
-            onMouseLeave={() => setHoveredRouteId(null)}
-            onClick={() =>
-              setSelectedRouteId((selectedRouteId) =>
-                selectedRouteId === route.id ? null : route.id,
-              )
-            }
-          >
-            <div className={styles["card-header"]}>
-              <h3
+        {routes.map((route) => {
+          const isSelected = route.id === selectedRouteId;
+          const isHovered = route.id === hoveredRouteId;
+          const cardBodyClasses = [styles["card-body"]];
+          if (isSelected) cardBodyClasses.push(styles["is-active"]);
+
+          const headingColor =
+            isNotNullish(route.textColor) &&
+            (isSelected || isHovered || !selectedRouteId)
+              ? `#${route.textColor}`
+              : "black";
+
+          const headingBackgroundColor = isNullish(route.color)
+            ? "gray"
+            : isSelected || isHovered
+            ? getRgbaString(route.color, 1)
+            : !selectedRouteId
+            ? getRgbaString(route.color, 0.5)
+            : "gray";
+
+          const typeText = route.type === "SUBWAY" ? "Subway" : "Light Rail";
+
+          return (
+            <li key={route.id}>
+              <button
+                onMouseEnter={() => setHoveredRouteId(route.id)}
+                onMouseLeave={() => setHoveredRouteId(null)}
+                onClick={() =>
+                  setSelectedRouteId((selectedRouteId) =>
+                    selectedRouteId === route.id ? null : route.id,
+                  )
+                }
                 style={{
-                  color: `#${route.textColor}`,
-                  backgroundColor: isNullish(route.color)
-                    ? ""
-                    : [hoveredRouteId, selectedRouteId].includes(route.id)
-                    ? getRgbaString(route.color, 1)
-                    : getRgbaString(route.color, 0.5),
+                  color: headingColor,
+                  backgroundColor: headingBackgroundColor,
                 }}
               >
-                <span>{route.longName}</span>
-              </h3>
-            </div>
-            <div className={styles["card-body"]}>
-              <p>Type: {route.type === "SUBWAY" ? "Subway" : "Light Rail"}</p>
-              <p>Fare Class: {route.fareClass}</p>
-            </div>
-          </li>
-        ))}
+                {route.longName}
+                {
+                  <FontAwesomeIcon
+                    icon={faTimes}
+                    className={isSelected ? styles["is-active"] : ""}
+                  />
+                }
+              </button>
+              <div className={cardBodyClasses.join(" ")}>
+                <p>
+                  <span>Type:</span> {typeText}
+                </p>
+                <p>
+                  <span>Fare Class:</span> {route.fareClass}
+                </p>
+              </div>
+            </li>
+          );
+        })}
       </ul>
-    </menu>
+    </nav>
   );
 }
 
