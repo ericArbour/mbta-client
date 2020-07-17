@@ -1,4 +1,4 @@
-.route-panel {
+.vehicle-panel {
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -7,20 +7,26 @@
   border: 1px solid var(--road-line);
 }
 
-.route-panel summary {
+.vehicle-panel summary {
   display: flex;
   align-items: center;
   padding: 0.5rem 1rem;
 }
 
-.route-panel[open] summary {
+.vehicle-panel[open] summary {
   border-bottom: 1px solid var(--road-line);
 }
 
-.route-panel summary h2 {
+.vehicle-panel summary h2 {
   padding: 0 0.5rem;
 }
 
+.vehicle-panel button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
 .panel-body {
-  padding: 0 1.5rem;
+  padding: 1em 1.5rem 0 1.5rem;
 }

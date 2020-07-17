@@ -4,7 +4,7 @@ import { useQuery } from "@apollo/react-hooks";
 
 import Menu from "../Menu/Menu";
 import Map from "../Map/Map";
-// import RoutePanel from "../RoutePanel/RoutePanel";
+import VehiclePanel from "../VehiclePanel/VehiclePanel";
 import { Route } from "../types";
 
 import "./Main.module.css";
@@ -34,7 +34,7 @@ export default function Main() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
     null,
   );
-  console.log(selectedVehicleId);
+
   const { data: routeData } = useQuery<{
     routes: Route[];
   }>(GET_ROUTES);
@@ -57,7 +57,10 @@ export default function Main() {
         setSelectedRouteId={setSelectedRouteId}
         setSelectedVehicleId={setSelectedVehicleId}
       />
-      {/* <RoutePanel selectedRoute={selectedRoute} /> */}
+      <VehiclePanel
+        selectedVehicleId={selectedVehicleId}
+        setSelectedVehicleId={setSelectedVehicleId}
+      />
     </main>
   );
 }
